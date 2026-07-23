@@ -43,6 +43,7 @@ let SearchResults = ({
   query,
   filters,
   hasFilters,
+  fromMe,
   activeTab,
   onPageSelected,
   headerHeight,
@@ -50,19 +51,25 @@ let SearchResults = ({
   query: string
   filters: SearchFilters
   hasFilters: boolean
+  fromMe: boolean
   activeTab: number
   onPageSelected: (page: number) => void
   headerHeight: number
 }): React.ReactNode => {
+  const ax = useAnalytics()
   const {t: l} = useLingui()
   /*
    * People/Feeds visibility keys off post-only filters: a `lang` filter applies
    * to people and feeds too, so it must not hide those tabs (which would also
    * regress the non-v2 legacy language dropdown). Other filters are post-only.
    */
-  const hasPostFilters = hasPostOnlyFilters(filters)
+  const hasPostFilters = hasPostOnlyFilters(filters) || fromMe
   const activePage = hasPostFilters && activeTab > 1 ? 0 : activeTab
   const tabShape = hasPostFilters ? 'filtered' : 'plain'
+
+  const isStarterPacksEnabled = ax.features.enabled(
+    ax.features.SearchStarterPacksV2Enable,
+  )
 
   const sections = useMemo(() => {
     if (!query && !hasFilters) return []
@@ -108,20 +115,29 @@ let SearchResults = ({
           <SearchScreenFeedsResults query={query} active={activePage === 3} />
         ),
       },
-      noFilters && {
-        title: l`Starter packs`,
-        component: (
-          <SearchScreenStarterPackResults
-            query={query}
-            active={activePage === 4}
-          />
-        ),
-      },
+      noFilters &&
+        isStarterPacksEnabled && {
+          title: l`Starter packs`,
+          component: (
+            <SearchScreenStarterPackResults
+              query={query}
+              active={activePage === 4}
+            />
+          ),
+        },
     ].filter(Boolean) as {
       title: string
       component: React.ReactNode
     }[]
-  }, [l, query, filters, hasFilters, hasPostFilters, activePage])
+  }, [
+    l,
+    query,
+    filters,
+    hasFilters,
+    hasPostFilters,
+    activePage,
+    isStarterPacksEnabled,
+  ])
 
   // There may be fewer tabs after changing the search options.
   const selectedPage = activePage > sections.length - 1 ? 0 : activePage
