@@ -15,7 +15,7 @@ concurrency:
 
 # Permissions are granted per-job below; anything unlisted defaults to none.
 # pull-requests: write is needed by sticky-pull-request-comment to post the
-# bundle-size and fingerprint diffs
+# bundle-size and fingerprint diffs and the PR OTA install link
 permissions: {}
 
 # denis release tag in bluesky-social/tango whose linux-amd64 binary the PR OTA
@@ -83,7 +83,7 @@ jobs:
           node-version-file: package.json
           cache: pnpm
 
-      - name: Ensure tracking relevant branches and checkout base
+      - name: 🌿 Ensure tracking relevant branches and checkout base
         env:
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
@@ -91,13 +91,13 @@ jobs:
           git checkout $HEAD_REF
           git checkout $BASE_REF
 
-      - name: Get the base commit
+      - name: 🔍 Get the base commit
         id: base-commit
         env:
           BASE_REF: ${{ github.base_ref }}
         run: echo base-commit=$(git log -n 1 $BASE_REF --pretty=format:'%H') >> "$GITHUB_OUTPUT"
 
-      - name: Merge PR commit
+      - name: 🔀 Merge PR commit
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
@@ -121,7 +121,7 @@ jobs:
           path: stats.json
           key: stats-base-main-${{ steps.base-commit.outputs.base-commit }}
 
-      - name: Restore to base commit
+      - name: ⏪ Restore to base commit
         if: ${{ !steps.get-base-stats.outputs.cache-hit }}
         env:
           BASE_COMMIT: ${{ steps.base-commit.outputs.base-commit }}
@@ -325,3 +325,21 @@ jobs:
         env:
           RUNTIME_VERSION: ''
           CHANNEL_NAME: pull-request-${{ github.event.pull_request.number }}
+
+  comment-pr-ota:
+    name: Comment PR OTA install link
+    needs: publish-pr-ota
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: 💬 Drop OTA install comment
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+        with:
+          header: pull-request-ota
+          message: |
+            The OTA deployment for this PR was successful! You may now apply it by either scanning the QR code or opening the deep link below in your browser:
+
+            <img src="https://bsky-qr.vercel.app?channel=pull-request-${{ github.event.pull_request.number }}" width="300" height="300" alt="QR code for the PR OTA deployment">
+
+            `bluesky://intent/apply-ota?channel=pull-request-${{ github.event.pull_request.number }}`
