@@ -4057,9 +4057,9 @@ msgstr ""
 
 #: src/components/dialogs/lists/CreateOrEditListDialog.tsx:102
 #: src/screens/Profile/Header/EditProfileDialog.tsx:79
-#: src/view/com/composer/Composer.tsx:1549
-#: src/view/com/composer/Composer.tsx:1593
-#: src/view/com/composer/Composer.tsx:1802
+#: src/view/com/composer/Composer.tsx:1515
+#: src/view/com/composer/Composer.tsx:1559
+#: src/view/com/composer/Composer.tsx:1768
 #: src/view/com/composer/drafts/DraftItem.tsx:243
 #: src/view/com/composer/drafts/DraftsButton.tsx:131
 msgid "Discard"
@@ -4070,7 +4070,7 @@ msgstr ""
 msgid "Discard changes?"
 msgstr ""
 
-#: src/view/com/composer/Composer.tsx:1547
+#: src/view/com/composer/Composer.tsx:1513
 #: src/view/com/composer/drafts/DraftItem.tsx:240
 #: src/view/com/composer/drafts/DraftsButton.tsx:98
 msgid "Discard draft?"
@@ -8641,7 +8641,7 @@ msgid "Open drawer menu"
 msgstr ""
 
 #: src/screens/Messages/components/MessageComposer.tsx:216
-#: src/view/com/composer/Composer.tsx:2305
+#: src/view/com/composer/Composer.tsx:2271
 msgid "Open emoji picker"
 msgstr ""
 
@@ -12438,7 +12438,7 @@ msgstr ""
 msgid "There was an issue fetching notifications. Tap here to try again."
 msgstr ""
 
-#: src/screens/Search/Explore.tsx:1012
+#: src/screens/Search/Explore.tsx:1013
 #: src/view/com/posts/PostFeed.tsx:825
 msgid "There was an issue fetching posts. Tap here to try again."
 msgstr ""
@@ -14335,7 +14335,7 @@ msgid "what’s up"
 msgstr "what’s up"
 
 #: src/view/com/auth/SplashScreen.web.tsx:99
-#: src/view/com/composer/Composer.tsx:1660
+#: src/view/com/composer/Composer.tsx:1626
 #: src/view/com/feeds/ComposerPrompt.tsx:194
 msgid "What's up?"
 msgstr ""
