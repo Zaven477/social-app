@@ -1284,7 +1284,7 @@ export type Events = {
     postContext: 'feed' | 'thread'
     position?: number
   }
-  'share:press:copyLink': {}
+  'share:press:copyLink': {uri: string}
   'share:press:nativeShare': {}
   /**
    * Fires when the system share sheet closes after sharing a post. Not
@@ -1303,9 +1303,9 @@ export type Events = {
     target?: string
   }
   'share:press:openDmSearch': {}
-  'share:press:dmSelected': {}
-  'share:press:recentDm': {}
-  'share:press:embed': {}
+  'share:press:dmSelected': {uri: string}
+  'share:press:recentDm': {uri: string}
+  'share:press:embed': {uri: string}
 
   'embed:standardSite:view': {url: string}
   'embed:standardSite:article:press': {url: string}
@@ -1494,6 +1494,54 @@ export type Events = {
   'profile:associated:germ:click-self-info': {}
   'profile:associated:germ:self-disconnect': {}
   'profile:associated:germ:self-reconnect': {}
+
+  'profile:links:click': {
+    domain: string
+    /**
+     * Name of the recognized support provider, if the link is a support link.
+     */
+    supportProvider: string | undefined
+    isOwnProfile: boolean
+  }
+  /**
+   * A profile showing links was viewed. The denominator for tap rate.
+   */
+  'profile:links:impression': {
+    linkCount: number
+    supportLinkCount: number
+    isOwnProfile: boolean
+  }
+  /**
+   * Edit Profile was opened with the Links section available.
+   */
+  'profile:links:editorOpen': {
+    linkCount: number
+  }
+  /**
+   * Logged on save, one event per link actually added or removed.
+   */
+  'profile:links:add': {
+    domain: string
+    supportProvider: string | undefined
+  }
+  'profile:links:remove': {
+    domain: string
+    supportProvider: string | undefined
+  }
+  /**
+   * A visitor continued past the leaving-Bluesky notice.
+   */
+  'profile:links:continue': {
+    domain: string
+    supportProvider: string | undefined
+  }
+  /**
+   * A link couldn't be added, e.g. because its site is blocked.
+   */
+  'profile:links:rejected': {
+    reason: 'blocked'
+    domain: string
+  }
 
   // Post photo embed events
   'post:photoEmbed:impression': {
