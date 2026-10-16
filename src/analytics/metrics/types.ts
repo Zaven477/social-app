@@ -1031,6 +1031,28 @@ export type Events = {
     listType: 'mute' | 'block'
   }
 
+  'moderation:inbox:view': {
+    tab: 'reports' | 'account'
+  }
+  'moderation:inbox:filter': {
+    tab: 'reports' | 'account'
+    filter: 'all' | 'pending' | 'resolved' | 'unread'
+  }
+  'moderation:inbox:markAllAsRead': {
+    tab: 'reports' | 'account'
+  }
+  'moderation:inbox:viewAccountStatus': {
+    status: 'warning' | 'atRisk'
+  }
+  'moderation:inbox:viewReport': {}
+  'moderation:inbox:viewNotice': {}
+  'moderation:inbox:startAppeal': {
+    type?: string
+  }
+  'moderation:inbox:submitAppeal': {
+    type?: string
+  }
+
   'reportDialog:open': {
     subjectType: string
   }
@@ -1529,9 +1551,9 @@ export type Events = {
     supportProvider: string | undefined
   }
   /**
-   * A visitor continued past the leaving-Bluesky notice.
+   * A visitor opened a link's details, e.g. by long-pressing it.
    */
-  'profile:links:continue': {
+  'profile:links:preview': {
     domain: string
     supportProvider: string | undefined
   }
@@ -1539,7 +1561,7 @@ export type Events = {
    * A link couldn't be added, e.g. because its site is blocked.
    */
   'profile:links:rejected': {
-    reason: 'blocked'
+    reason: 'blocked' | 'shortener' | 'insecure'
     domain: string
   }
 
