@@ -1058,6 +1058,7 @@ export type Events = {
   }
   'reportDialog:close': {}
   'reportDialog:success': {
+    subjectType: string
     reason: string
     labeler: string
     details: boolean
@@ -1534,6 +1535,10 @@ export type Events = {
     isOwnProfile: boolean
   }
   /**
+   * Edit Profile was opened, from any profile header.
+   */
+  'profile:edit:open': {}
+  /**
    * Edit Profile was opened with the Links section available.
    */
   'profile:links:editorOpen': {
@@ -1561,8 +1566,12 @@ export type Events = {
    * A link couldn't be added, e.g. because its site is blocked.
    */
   'profile:links:rejected': {
-    reason: 'blocked' | 'shortener' | 'insecure'
-    domain: string
+    reason: 'blocked' | 'safelink' | 'shortener' | 'insecure'
+    /**
+     * Left out for Safelink blocks, which can be sensitive sites. The other
+     * reasons come from public lists in the app.
+     */
+    domain?: string
   }
 
   // Post photo embed events
