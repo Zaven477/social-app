@@ -63,7 +63,7 @@ module.exports = function (_config) {
       userInterfaceStyle: 'automatic',
       primaryColor: '#006AFF',
       ios: {
-        supportsTablet: IS_DEV || IS_TESTFLIGHT,
+        supportsTablet: true,
         bundleIdentifier: 'xyz.blueskyweb.app',
         appleTeamId: process.env.EXPO_APPLE_TEAM_ID,
         config: {
@@ -353,6 +353,7 @@ module.exports = function (_config) {
         './plugins/withAndroidManifestLargeHeapPlugin.js',
         './plugins/withAndroidManifestFCMIconPlugin.js',
         './plugins/withAndroidManifestIntentQueriesPlugin.js',
+        './plugins/withAndroidManifestOptionalCameraPlugin.js',
         './plugins/withAndroidStylesAccentColorPlugin.js',
         './plugins/withAndroidNoJitpackPlugin.js',
         './plugins/withAndroidPreparedTextLayoutPlugin.js',
