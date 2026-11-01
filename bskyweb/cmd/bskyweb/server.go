@@ -30,6 +30,8 @@ import (
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/bluesky-social/social-app/bskyweb"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/flosch/pongo2/v6"
 	"github.com/klauspost/compress/gzhttp"
 	"github.com/klauspost/compress/gzip"
@@ -83,6 +85,26 @@ func serve(cctx *cli.Context) error {
 	staticCDNHost = strings.TrimSuffix(staticCDNHost, "/")
 	canonicalInstance := cctx.Bool("bsky-canonical-instance")
 	robotsDisallowAll := cctx.Bool("robots-disallow-all")
+	appVersion := cctx.String("bsky-app-version")
+	appStaticsBucket := cctx.String("bsky-app-statics-bucket")
+	appStaticsRegion := cctx.String("bsky-app-statics-region")
+
+	templateFS := fs.FS(bskyweb.TemplateFS)
+	staticFS := fs.FS(bskyweb.StaticFS)
+	if appVersion != "" {
+		if debug {
+			log.Warnf("ignoring app version %s: debug mode serves templates and static files from the local file system", appVersion)
+		} else {
+			// Credentials come from the environment (the IRSA role in production)
+			// and are only fetched on the first download.
+			awsCfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(appStaticsRegion))
+			if err != nil {
+				return fmt.Errorf("loading AWS config: %w", err)
+			}
+			log.Infof("serving app version %s from s3://%s/%s", appVersion, appStaticsBucket, appVersion)
+			templateFS, staticFS = remoteAppFS(s3.NewFromConfig(awsCfg), appStaticsBucket, appVersion)
+		}
+	}
 
 	// Echo
 	e := echo.New()
@@ -173,7 +195,7 @@ func serve(cctx *cli.Context) error {
 	}
 
 	e.HideBanner = true
-	e.Renderer = NewRenderer("templates/", &bskyweb.TemplateFS, debug)
+	e.Renderer = NewRenderer("templates/", templateFS, debug)
 	e.HTTPErrorHandler = server.errorHandler
 
 	e.IPExtractor = echo.ExtractIPFromXFFHeader()
@@ -252,7 +274,7 @@ func serve(cctx *cli.Context) error {
 			log.Debugf("serving static file from the local file system")
 			return http.FS(os.DirFS("static"))
 		}
-		fsys, err := fs.Sub(bskyweb.StaticFS, "static")
+		fsys, err := fs.Sub(staticFS, "static")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -510,7 +532,13 @@ func (srv *Server) errorHandler(err error, c echo.Context) {
 	c.Logger().Error(err)
 	data := srv.NewTemplateContext()
 	data["statusCode"] = code
-	c.Render(code, "error.html", data)
+	if err := c.Render(code, "error.html", data); err != nil {
+		// error.html extends base.html, so it fails too when the app's fragments
+		// can't be loaded. Without a response, net/http would send an empty 200,
+		// which the probes on / would take as healthy.
+		c.Logger().Error(err)
+		c.String(code, http.StatusText(code))
+	}
 }
 
 // Handler for redirecting to the download page.
