@@ -269,17 +269,18 @@ func serve(cctx *cli.Context) error {
 	// configure routes
 	//
 	// static files
-	staticHandler := http.FileServer(func() http.FileSystem {
+	staticRoot := func() fs.FS {
 		if debug {
 			log.Debugf("serving static file from the local file system")
-			return http.FS(os.DirFS("static"))
+			return os.DirFS("static")
 		}
 		fsys, err := fs.Sub(staticFS, "static")
 		if err != nil {
 			log.Fatal(err)
 		}
-		return http.FS(fsys)
-	}())
+		return fsys
+	}()
+	staticHandler := http.FileServer(http.FS(staticRoot))
 
 	// enable some special endpoints for the "canonical" deployment (bsky.app). not having these enabled should *not* impact regular operation
 	if canonicalInstance {
@@ -296,11 +297,7 @@ func serve(cctx *cli.Context) error {
 	}
 
 	// default to permissive, but Disallow all if flag set
-	if robotsDisallowAll {
-		e.File("/robots.txt", "static/robots-disallow-all.txt")
-	} else {
-		e.GET("/robots.txt", echo.WrapHandler(staticHandler))
-	}
+	e.GET("/robots.txt", robotsHandler(staticRoot, robotsDisallowAll))
 
 	e.GET("/iframe/*", echo.WrapHandler(staticHandler))
 	e.GET("/static/*", echo.WrapHandler(http.StripPrefix("/static/", staticHandler)), func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -1106,4 +1103,12 @@ func (srv *Server) serveSitemapRequest(c echo.Context, url, sitemapType string) 
 	}
 
 	return nil
+}
+
+func robotsHandler(staticRoot fs.FS, disallowAll bool) echo.HandlerFunc {
+	filename := "robots.txt"
+	if disallowAll {
+		filename = "robots-disallow-all.txt"
+	}
+	return echo.StaticFileHandler(filename, staticRoot)
 }
