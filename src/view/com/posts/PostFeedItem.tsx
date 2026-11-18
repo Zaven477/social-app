@@ -17,14 +17,9 @@ import {
   type Shadow,
   usePostShadow,
 } from '#/state/cache/post-shadow'
-import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {unstableCacheProfileView} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
-import {
-  buildPostSourceKey,
-  setUnstablePostSource,
-} from '#/state/unstable-post-source'
 import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
@@ -53,6 +48,15 @@ import {DiscoverDebug} from '#/components/PostControls/DiscoverDebug'
 import {RichText} from '#/components/RichText'
 import {SubtleHover} from '#/components/SubtleHover'
 import {Features, useAnalytics} from '#/analytics'
+import {
+  type FeedItem,
+  FeedItemProvider,
+  useFeedFeedbackContext,
+} from '#/features/feedFeedback'
+import {
+  buildPostSourceKey,
+  setUnstablePostSource,
+} from '#/features/feedFeedback/postSource'
 import {useActorStatus} from '#/features/liveNow'
 import {app} from '#/lexicons'
 import * as bsky from '#/types/bsky'
@@ -116,28 +120,42 @@ export function PostFeedItem({
     return null
   }
   if (richText && moderation) {
+    const feedItem: FeedItem = {
+      uri: postShadowed.uri,
+      authorDid: postShadowed.author.did,
+      feedContext,
+      reqId,
+      via:
+        bsky.isType(app.bsky.feed.defs.reasonRepost, reason) &&
+        reason.uri &&
+        reason.cid
+          ? {uri: reason.uri, cid: reason.cid}
+          : undefined,
+    }
     return (
       <ReportDialogMetadataContext.Provider key={postShadowed.uri}>
-        <FeedItemInner
-          post={postShadowed}
-          record={record}
-          postNumbering={postNumbering}
-          reason={reason}
-          feedContext={feedContext}
-          reqId={reqId}
-          richText={richText}
-          parentAuthor={parentAuthor}
-          showReplyTo={showReplyTo}
-          moderation={moderation}
-          isThreadChild={isThreadChild}
-          isThreadLastChild={isThreadLastChild}
-          isThreadParent={isThreadParent}
-          hideTopBorder={hideTopBorder}
-          isParentBlocked={isParentBlocked}
-          isParentNotFound={isParentNotFound}
-          rootPost={rootPost}
-          onShowLess={onShowLess}
-        />
+        <FeedItemProvider value={feedItem}>
+          <FeedItemInner
+            post={postShadowed}
+            record={record}
+            postNumbering={postNumbering}
+            reason={reason}
+            feedContext={feedContext}
+            reqId={reqId}
+            richText={richText}
+            parentAuthor={parentAuthor}
+            showReplyTo={showReplyTo}
+            moderation={moderation}
+            isThreadChild={isThreadChild}
+            isThreadLastChild={isThreadLastChild}
+            isThreadParent={isThreadParent}
+            hideTopBorder={hideTopBorder}
+            isParentBlocked={isParentBlocked}
+            isParentNotFound={isParentNotFound}
+            rootPost={rootPost}
+            onShowLess={onShowLess}
+          />
+        </FeedItemProvider>
       </ReportDialogMetadataContext.Provider>
     )
   }
@@ -303,19 +321,6 @@ let FeedItemInner = ({
 
   const {isActive: live} = useActorStatus(post.author)
 
-  const viaRepost = useMemo(() => {
-    if (
-      bsky.isType(app.bsky.feed.defs.reasonRepost, reason) &&
-      reason.uri &&
-      reason.cid
-    ) {
-      return {
-        uri: reason.uri,
-        cid: reason.cid,
-      }
-    }
-  }, [reason])
-
   const threadgateHiddenReplies = useMergedThreadgateHiddenReplies({
     threadgateRecord,
   })
@@ -451,11 +456,8 @@ let FeedItemInner = ({
               richText={richText}
               onPressReply={onPressReply}
               logContext="FeedItem"
-              feedContext={feedContext}
-              reqId={reqId}
               threadgateRecord={threadgateRecord}
               onShowLess={onShowLess}
-              viaRepost={viaRepost}
             />
             <KnownLikers
               post={post}

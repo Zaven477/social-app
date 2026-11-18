@@ -16,12 +16,10 @@ import {
   usePostShadow,
 } from '#/state/cache/post-shadow'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
-import {FeedFeedbackProvider, useFeedFeedback} from '#/state/feed-feedback'
 import {type ThreadItem} from '#/state/queries/usePostThread/types'
 import {useSession} from '#/state/session'
 import {type OnPostSuccessData} from '#/state/shell/composer'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
-import {type PostSource} from '#/state/unstable-post-source'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {LikesStat} from '#/screens/PostThread/components/LikesStat'
 import {ThreadItemAnchorFollowButton} from '#/screens/PostThread/components/ThreadItemAnchorFollowButton'
@@ -59,6 +57,14 @@ import * as Skele from '#/components/Skeleton'
 import {Text} from '#/components/Typography'
 import {WhoCanReply} from '#/components/WhoCanReply'
 import {Features, useAnalytics} from '#/analytics'
+import {
+  FeedFeedbackProvider,
+  type FeedItem,
+  FeedItemProvider,
+  useFeedFeedback,
+  useFeedFeedbackContext,
+} from '#/features/feedFeedback'
+import {type PostSource} from '#/features/feedFeedback/postSource'
 import {useActorStatus} from '#/features/liveNow'
 import {app} from '#/lexicons'
 import * as bsky from '#/types/bsky'
@@ -74,6 +80,12 @@ export function ThreadItemAnchor({
   threadgateRecord?: app.bsky.feed.threadgate.Main
   postSource?: PostSource
 }) {
+  const {hasSession} = useSession()
+  const feedFeedback = useFeedFeedback(
+    postSource?.feedSourceInfo,
+    hasSession,
+    'thread',
+  )
   const postShadow = usePostShadow(item.value.post)
   const threadRootUri = item.value.post.record.reply?.root?.uri || item.uri
   const isRoot = threadRootUri === item.uri
@@ -82,16 +94,35 @@ export function ThreadItemAnchor({
     return <ThreadItemAnchorDeleted isRoot={isRoot} />
   }
 
+  const reason = postSource?.post.reason
+  /** The feed item this post was opened from, if any. */
+  const feedItem: FeedItem | undefined = postSource && {
+    uri: postShadow.uri,
+    authorDid: postShadow.author.did,
+    feedContext: postSource.post.feedContext,
+    reqId: postSource.post.reqId,
+    via:
+      bsky.isType(app.bsky.feed.defs.reasonRepost, reason) &&
+      reason.uri &&
+      reason.cid
+        ? {uri: reason.uri, cid: reason.cid}
+        : undefined,
+  }
+
   return (
     <ReportDialogMetadataContext.Provider key={postShadow.uri}>
-      <ThreadItemAnchorInner
-        item={item}
-        isRoot={isRoot}
-        postShadow={postShadow}
-        onPostSuccess={onPostSuccess}
-        threadgateRecord={threadgateRecord}
-        postSource={postSource}
-      />
+      <FeedFeedbackProvider value={feedFeedback}>
+        <FeedItemProvider value={feedItem}>
+          <ThreadItemAnchorInner
+            item={item}
+            isRoot={isRoot}
+            postShadow={postShadow}
+            onPostSuccess={onPostSuccess}
+            threadgateRecord={threadgateRecord}
+            postSource={postSource}
+          />
+        </FeedItemProvider>
+      </FeedFeedbackProvider>
     </ReportDialogMetadataContext.Provider>
   )
 }
@@ -181,8 +212,8 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
   const ax = useAnalytics()
   const {t: l} = useLingui()
   const {openComposer} = useOpenComposer()
-  const {currentAccount, hasSession} = useSession()
-  const feedFeedback = useFeedFeedback(postSource?.feedSourceInfo, hasSession)
+  const {currentAccount} = useSession()
+  const feedFeedback = useFeedFeedbackContext()
   const formatPostStatCount = useFormatPostStatCount()
 
   const post = postShadow
@@ -236,21 +267,6 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
   )
   const showFollowButton =
     currentAccount?.did !== post.author.did && !onlyFollowersCanReply
-
-  const viaRepost = useMemo(() => {
-    const reason = postSource?.post.reason
-
-    if (
-      bsky.isType(app.bsky.feed.defs.reasonRepost, reason) &&
-      reason.uri &&
-      reason.cid
-    ) {
-      return {
-        uri: reason.uri,
-        cid: reason.cid,
-      }
-    }
-  }, [postSource])
 
   const onPressReply = useNonReactiveCallback(() => {
     openComposer({
@@ -527,20 +543,15 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
                   marginLeft: -5,
                 },
               ]}>
-              <FeedFeedbackProvider value={feedFeedback}>
-                <PostControls
-                  big
-                  post={postShadow}
-                  record={record}
-                  richText={richText}
-                  onPressReply={onPressReply}
-                  logContext="PostThreadItem"
-                  threadgateRecord={threadgateRecord}
-                  feedContext={postSource?.post?.feedContext}
-                  reqId={postSource?.post?.reqId}
-                  viaRepost={viaRepost}
-                />
-              </FeedFeedbackProvider>
+              <PostControls
+                big
+                post={postShadow}
+                record={record}
+                richText={richText}
+                onPressReply={onPressReply}
+                logContext="PostThreadItem"
+                threadgateRecord={threadgateRecord}
+              />
             </View>
             <DebugFieldDisplay subject={post} />
           </View>
